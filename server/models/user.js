@@ -43,12 +43,33 @@ UserSchema.methods.toJSON = function() {
 UserSchema.methods.generateAuthToken = function() {
   const user = this;
   const access = 'auth';
-  const token = jwt.sign({_id: user._id.toHexString(), access }, 'abc123' ).toString();
+  const token = jwt.sign({_id: user._id.toHexString(), access }, 'abc123' );
 
   user.tokens = user.tokens.concat([{ access, token }]);
 
   return user.save().then(() => {
-    return token; // usually need to return a promise, but in this case is legal?
+    return token; // usually need to return a promise, but return value will alson chain
+  });
+};
+
+// Model method:
+UserSchema.statics.findByToken = function(token) {
+  const User = this;
+  let decoded;
+
+  try {
+    decoded = jwt.verify(token, 'abc123');
+  } catch (e) {
+    // return new Promise((resolve, reject) => {
+    //   reject();
+    // });
+    return Promise.reject();
+  }
+
+  return User.findOne({
+    '_id': decoded._id,
+    'tokens.token': token,
+    'tokens.access': 'auth'
   });
 };
 
